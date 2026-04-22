@@ -75,12 +75,8 @@ export class FFmpeg {
     load = ({ classWorkerURL, ...config } = {}, { signal } = {}) => {
         if (!this.#worker) {
             this.#worker = classWorkerURL
-                ? new Worker(new URL(classWorkerURL, import.meta.url), {
-                    type: "module",
-                })
-                : new Worker(new URL("./worker.js", import.meta.url), {
-                    type: "module",
-                });
+                ? new Worker(new URL(classWorkerURL, import.meta.url))
+                : new Worker(new URL("./worker-classic.js", import.meta.url));
             this.#registerHandlers();
         }
         return this.#send({

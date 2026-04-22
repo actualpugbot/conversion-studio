@@ -15,7 +15,7 @@ const sourcePreview = document.getElementById("source-preview");
 const outputPreview = document.getElementById("output-preview");
 const statusEl = document.getElementById("status");
 
-const ffmpegState = { instance: null, loaded: false, loadingPromise: null, busy: false };
+const ffmpegState = { instance: null, loaded: false, loadingPromise: null, busy: false, lastLogs: [] };
 const appState = {
   file: null,
   fileType: null,
@@ -54,6 +54,31 @@ function detectFileType(file) {
 function setStatus(message, tone = "neutral") {
   statusEl.textContent = message;
   statusEl.dataset.tone = tone;
+}
+
+function rememberFfmpegLog({ type, message }) {
+  ffmpegState.lastLogs.push({ type, message });
+  if (ffmpegState.lastLogs.length > 40) {
+    ffmpegState.lastLogs.shift();
+  }
+}
+
+function getLastFfmpegError() {
+  const lastError = [...ffmpegState.lastLogs]
+    .reverse()
+    .find((entry) => entry.type === "stderr" && entry.message && !entry.message.startsWith("frame="));
+
+  if (!lastError) {
+    return "";
+  }
+
+  return lastError.message
+    .replace(/^ffmpeg version.+$/m, "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !line.startsWith("video:") && !line.startsWith("audio:"))
+    .at(-1);
 }
 
 function formatFileSize(bytes) {
@@ -316,6 +341,7 @@ async function ensureFfmpeg() {
     ffmpegState.loadingPromise = (async () => {
       setStatus("Loading conversion engine…", "info");
       const ffmpeg = new FFmpeg();
+      ffmpeg.on("log", rememberFfmpegLog);
       ffmpeg.on("progress", ({ progress }) => {
         setStatus(`Converting… ${Math.max(1, Math.round(progress * 100))}%`, "info");
       });
@@ -329,6 +355,14 @@ async function ensureFfmpeg() {
   }
 
   return ffmpegState.loadingPromise;
+}
+
+async function execConversion(ffmpeg, args) {
+  ffmpegState.lastLogs = [];
+  const exitCode = await ffmpeg.exec(args);
+  if (exitCode !== 0) {
+    throw new Error(getLastFfmpegError() || `Conversion failed with exit code ${exitCode}.`);
+  }
 }
 
 function buildAudioOutputConfig(format) {
@@ -444,7 +478,7 @@ async function convert() {
         args.push("-ar", sampleRate);
       }
       args.push(...config.args, outputName);
-      await ffmpeg.exec(args);
+      await execConversion(ffmpeg, args);
       const data = await ffmpeg.readFile(outputName);
       outputBlob = new Blob([data.buffer], { type: config.mime });
     } else {
@@ -457,7 +491,7 @@ async function convert() {
         args.push("-vf", filterGraph);
       }
       args.push("-frames:v", "1", ...config.args, outputName);
-      await ffmpeg.exec(args);
+      await execConversion(ffmpeg, args);
       const data = await ffmpeg.readFile(outputName);
       outputBlob = new Blob([data.buffer], { type: config.mime });
     }
@@ -488,8 +522,13 @@ async function convert() {
 
     setStatus(`Converted to ${config.extension.toUpperCase()}.`, "success");
   } catch (err) {
-    setStatus(err.message || "Conversion failed.", "danger");
-    outputPreview.innerHTML = `<p class="preview-empty">Conversion failed.</p>`;
+    const message = err instanceof Error ? err.message : String(err);
+    setStatus(message || "Conversion failed.", "danger");
+    outputPreview.innerHTML = "";
+    const failure = document.createElement("p");
+    failure.className = "preview-empty";
+    failure.textContent = message || "Conversion failed.";
+    outputPreview.appendChild(failure);
   } finally {
     ffmpegState.busy = false;
     convertBtn.disabled = false;
