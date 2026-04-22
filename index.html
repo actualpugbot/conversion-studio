@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Conversion Studio</title>
+    <meta
+      name="description"
+      content="Browser-side audio and image conversion with a cleaner, tool-first workspace."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Source+Sans+3:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="studio">
+      <header class="app-header">
+        <div class="app-heading">
+          <h1>Conversion Studio</h1>
+        </div>
+      </header>
+
+      <label class="dropzone" id="dropzone">
+        <input
+          id="file-input"
+          type="file"
+          accept="audio/*,image/*,.mp3,.wav,.ogg,.flac,.aac,.m4a,.webm,.bmp,.gif,.tif,.tiff,.webp,.avif"
+          hidden
+        />
+        <svg
+          class="dropzone-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          aria-hidden="true"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+          />
+        </svg>
+        <span class="dropzone-title">Drop a file to convert</span>
+        <span class="dropzone-hint">Audio or image — formats appear after you drop</span>
+      </label>
+
+      <div class="workspace" id="workspace" hidden>
+        <div class="file-row">
+          <span class="file-pill" id="file-pill"></span>
+        </div>
+
+        <div class="action-row">
+          <label class="control">
+            <span>Convert to</span>
+            <select id="format-select"></select>
+          </label>
+          <button class="primary-button" id="convert-btn" type="button">Convert</button>
+          <a class="download-link" id="download-link" hidden>Download</a>
+        </div>
+
+        <details class="settings-group" id="advanced-settings">
+          <summary>More settings</summary>
+          <div id="advanced-content"></div>
+        </details>
+
+        <div class="preview-grid">
+          <article class="preview-card">
+            <p class="preview-label">Original</p>
+            <div id="source-preview"></div>
+          </article>
+          <article class="preview-card">
+            <p class="preview-label">Converted</p>
+            <div id="output-preview">
+              <p class="preview-empty">Converted preview appears here.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <p class="status" id="status" data-tone="neutral" aria-live="polite">
+        Drop a file to begin.
+      </p>
+    </main>
+
+    <script type="module" src="script.js"></script>
+  </body>
+</html>
